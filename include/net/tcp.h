@@ -581,6 +581,7 @@ void tcp_get_info(struct sock *, struct tcp_info *);
 
 /* Routines required by Tempesta FW. */
 extern void skb_entail(struct sock *sk, struct sk_buff *skb);
+void tcp_cleanup_rbuf(struct sock *sk, int copied);
 extern void tcp_push(struct sock *sk, int flags, int mss_now, int nonagle,
 		     int size_goal);
 extern int tcp_send_mss(struct sock *sk, int *size_goal, int flags);
