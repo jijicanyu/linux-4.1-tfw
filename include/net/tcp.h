@@ -579,9 +579,10 @@ static inline int tcp_bound_to_half_wnd(struct tcp_sock *tp, int pktsize)
 /* tcp.c */
 void tcp_get_info(struct sock *, struct tcp_info *);
 
-/* Routines required by Synchronous Sockets module. */
+/* Routines required by Tempesta FW. */
 extern void skb_entail(struct sock *sk, struct sk_buff *skb);
-extern void tcp_push(struct sock *sk, int flags, int mss_now, int nonagle);
+extern void tcp_push(struct sock *sk, int flags, int mss_now, int nonagle,
+		     int size_goal);
 extern int tcp_send_mss(struct sock *sk, int *size_goal, int flags);
 extern void tcp_mark_push(struct tcp_sock *tp, struct sk_buff *skb);
 extern void tcp_init_nondata_skb(struct sk_buff *skb, u32 seq, u8 flags);
