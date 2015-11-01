@@ -718,6 +718,9 @@ static void skb_release_all(struct sk_buff *skb)
 
 void __kfree_skb(struct sk_buff *skb)
 {
+	/* Can't free buffers owned by Tempesta. */
+	BUG_ON((unlikely(ss_skb_passed(skb))));
+
 	skb_release_all(skb);
 	kfree_skbmem(skb);
 }
@@ -807,7 +810,9 @@ static void __copy_skb_header(struct sk_buff *new, const struct sk_buff *old)
 	new->tstamp		= old->tstamp;
 	/* We do not copy old->sk */
 	new->dev		= old->dev;
-	memcpy(new->cb, old->cb, sizeof(old->cb));
+	memcpy(new->cb, old->cb, sizeof(old->cb) - sizeof(SsSkbCb));
+	TFW_SKB_CB(new)->next	= NULL;
+	TFW_SKB_CB(new)->prev	= NULL;
 	skb_dst_copy(new, old);
 #ifdef CONFIG_XFRM
 	new->sp			= secpath_get(old->sp);
