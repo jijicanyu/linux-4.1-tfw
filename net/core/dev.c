@@ -138,6 +138,11 @@
 
 #include "net-sysfs.h"
 
+#ifdef CONFIG_SECURITY_TEMPESTA
+/* Tempesta supports x86-64 only. */
+#include <asm/i387.h>
+#endif
+
 /* Instead of increasing this, you should create a hash table. */
 #define MAX_GRO_SKBS 8
 
@@ -4620,6 +4625,15 @@ static int napi_poll(struct napi_struct *n, struct list_head *repoll)
 
 	weight = n->weight;
 
+#ifdef CONFIG_SECURITY_TEMPESTA
+	/*
+	 * Switch FPU context once per budget packets to let Tempesta
+	 * run many vector operations w/o costly FPU switches.
+	 * Eager FPU must be enabled.
+	 */
+	kernel_fpu_begin();
+#endif
+
 	/* This NAPI_STATE_SCHED test is for avoiding a race
 	 * with netpoll's poll_napi().  Only the entity which
 	 * obtains the lock and sees NAPI_STATE_SCHED set will
@@ -4666,6 +4680,9 @@ static int napi_poll(struct napi_struct *n, struct list_head *repoll)
 	list_add_tail(&n->poll_list, repoll);
 
 out_unlock:
+#ifdef CONFIG_SECURITY_TEMPESTA
+	kernel_fpu_end();
+#endif
 	netpoll_poll_unlock(have);
 
 	return work;
