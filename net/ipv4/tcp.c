@@ -614,7 +614,7 @@ static inline bool forced_push(const struct tcp_sock *tp)
 	return after(tp->write_seq, tp->pushed_seq + (tp->max_window >> 1));
 }
 
-void skb_entail(struct sock *sk, struct sk_buff *skb)
+static void skb_entail(struct sock *sk, struct sk_buff *skb)
 {
 	struct tcp_sock *tp = tcp_sk(sk);
 	struct tcp_skb_cb *tcb = TCP_SKB_CB(skb);
@@ -630,7 +630,6 @@ void skb_entail(struct sock *sk, struct sk_buff *skb)
 	if (tp->nonagle & TCP_NAGLE_PUSH)
 		tp->nonagle &= ~TCP_NAGLE_PUSH;
 }
-EXPORT_SYMBOL(skb_entail);
 
 static inline void tcp_mark_urg(struct tcp_sock *tp, int flags)
 {
