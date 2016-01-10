@@ -138,11 +138,6 @@
 
 #include "net-sysfs.h"
 
-#ifdef CONFIG_SECURITY_TEMPESTA
-/* Tempesta supports x86-64 only. */
-#include <asm/i387.h>
-#endif
-
 /* Instead of increasing this, you should create a hash table. */
 #define MAX_GRO_SKBS 8
 
@@ -3448,6 +3443,27 @@ int netif_rx_ni(struct sk_buff *skb)
 }
 EXPORT_SYMBOL(netif_rx_ni);
 
+#ifdef CONFIG_SECURITY_TEMPESTA
+#include <linux/tempesta.h>
+
+static TempestaTxAction __rcu tempesta_tx_action = NULL;
+
+void
+tempesta_set_tx_action(TempestaTxAction action)
+{
+	rcu_assign_pointer(tempesta_tx_action, action);
+}
+EXPORT_SYMBOL(tempesta_set_tx_action);
+
+void
+tempesta_del_tx_action(void)
+{
+	rcu_assign_pointer(tempesta_tx_action, NULL);
+	synchronize_rcu();
+}
+EXPORT_SYMBOL(tempesta_del_tx_action);
+#endif
+
 static void net_tx_action(struct softirq_action *h)
 {
 	struct softnet_data *sd = this_cpu_ptr(&softnet_data);
@@ -3472,6 +3488,20 @@ static void net_tx_action(struct softirq_action *h)
 			__kfree_skb(skb);
 		}
 	}
+
+#ifdef CONFIG_SECURITY_TEMPESTA
+	{
+		TempestaTxAction action;
+
+		rcu_read_lock();
+
+		action = rcu_dereference(tempesta_tx_action);
+		if (likely(action))
+			action();
+
+		rcu_read_unlock();
+	}
+#endif
 
 	if (sd->output_queue) {
 		struct Qdisc *head;
@@ -4625,15 +4655,6 @@ static int napi_poll(struct napi_struct *n, struct list_head *repoll)
 
 	weight = n->weight;
 
-#ifdef CONFIG_SECURITY_TEMPESTA
-	/*
-	 * Switch FPU context once per budget packets to let Tempesta
-	 * run many vector operations w/o costly FPU switches.
-	 * Eager FPU must be enabled.
-	 */
-	kernel_fpu_begin();
-#endif
-
 	/* This NAPI_STATE_SCHED test is for avoiding a race
 	 * with netpoll's poll_napi().  Only the entity which
 	 * obtains the lock and sees NAPI_STATE_SCHED set will
@@ -4680,9 +4701,6 @@ static int napi_poll(struct napi_struct *n, struct list_head *repoll)
 	list_add_tail(&n->poll_list, repoll);
 
 out_unlock:
-#ifdef CONFIG_SECURITY_TEMPESTA
-	kernel_fpu_end();
-#endif
 	netpoll_poll_unlock(have);
 
 	return work;
