@@ -851,6 +851,13 @@ static inline int sk_backlog_rcv(struct sock *sk, struct sk_buff *skb)
 
 static inline void sk_incoming_cpu_update(struct sock *sk)
 {
+#ifdef CONFIG_SECURITY_TEMPESTA
+	if (unlikely(sk->sk_incoming_cpu != raw_smp_processor_id()))
+		net_warn_ratelimited("Warning: bad socket cpu locality:"
+				     " old_cpu=%d curr_cpu=%d\n",
+				     sk->sk_incoming_cpu,
+				     raw_smp_processor_id());
+#endif
 	sk->sk_incoming_cpu = raw_smp_processor_id();
 }
 
