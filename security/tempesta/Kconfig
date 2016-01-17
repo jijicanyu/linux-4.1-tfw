@@ -2,6 +2,7 @@ config SECURITY_TEMPESTA
 	bool "Tempesta FW Support"
 	depends on SECURITY && NET && INET
 	select SECURITY_NETWORK
+	select RPS
 	select CRYPTO
 	select CRYPTO_HMAC
 	select CRYPTO_SHA1

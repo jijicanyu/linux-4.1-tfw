@@ -849,16 +849,14 @@ static inline int sk_backlog_rcv(struct sock *sk, struct sk_buff *skb)
 	return sk->sk_backlog_rcv(sk, skb);
 }
 
+#define TFW_SK_CPU_INIT	USHRT_MAX
+
 static inline void sk_incoming_cpu_update(struct sock *sk)
 {
 #ifdef CONFIG_SECURITY_TEMPESTA
-	if (unlikely(sk->sk_incoming_cpu != raw_smp_processor_id()))
-		net_warn_ratelimited("Warning: bad socket cpu locality:"
-				     " old_cpu=%d curr_cpu=%d\n",
-				     sk->sk_incoming_cpu,
-				     raw_smp_processor_id());
+	if (sk->sk_incoming_cpu == TFW_SK_CPU_INIT)
 #endif
-	sk->sk_incoming_cpu = raw_smp_processor_id();
+		sk->sk_incoming_cpu = raw_smp_processor_id();
 }
 
 static inline void sock_rps_record_flow_hash(__u32 hash)
