@@ -571,8 +571,10 @@ struct sk_buff {
 				fclone:2,
 				peeked:1,
 				head_frag:1,
+#ifdef CONFIG_SECURITY_TEMPESTA
+				skb_page:1,
+#endif
 				xmit_more:1;
-	/* one bit hole */
 	kmemcheck_bitfield_end(flags1);
 
 	/* fields enclosed in headers_start/headers_end are copied
