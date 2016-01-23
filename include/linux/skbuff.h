@@ -3475,6 +3475,11 @@ typedef struct {
 
 #define TFW_SKB_CB(s)		((SsSkbCb *)((s)->cb + sizeof((s)->cb)	\
 						      - sizeof(SsSkbCb)))
+#define TFW_SKB_CB_INIT(skb)						\
+do {									\
+	TFW_SKB_CB(skb)->prev = NULL;					\
+	TFW_SKB_CB(skb)->next = NULL;					\
+} while (0)
 
 /**
  * Whether the @skb is passed to application layer.

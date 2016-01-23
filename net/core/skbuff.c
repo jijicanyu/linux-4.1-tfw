@@ -937,8 +937,7 @@ static void __copy_skb_header(struct sk_buff *new, const struct sk_buff *old)
 	/* We do not copy old->sk */
 	new->dev		= old->dev;
 	memcpy(new->cb, old->cb, sizeof(old->cb) - sizeof(SsSkbCb));
-	TFW_SKB_CB(new)->next	= NULL;
-	TFW_SKB_CB(new)->prev	= NULL;
+	TFW_SKB_CB_INIT(new);
 	skb_dst_copy(new, old);
 #ifdef CONFIG_XFRM
 	new->sp			= secpath_get(old->sp);
