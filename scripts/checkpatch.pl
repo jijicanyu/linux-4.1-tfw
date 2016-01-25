@@ -4376,17 +4376,6 @@ sub process {
 			}
 
 # check for macros with flow control, but without ## concatenation
-# ## concatenation is commonly a macro that defines a function so ignore those
-			if ($has_flow_statement && !$has_arg_concat) {
-				my $herectx = $here . "\n";
-				my $cnt = statement_rawlines($ctx);
-
-				for (my $n = 0; $n < $cnt; $n++) {
-					$herectx .= raw_line($linenr, $n) . "\n";
-				}
-				WARN("MACRO_WITH_FLOW_CONTROL",
-				     "Macros with flow control statements should be avoided\n" . "$herectx");
-			}
 
 # check for line continuations outside of #defines, preprocessor #, and asm
 
@@ -4438,19 +4427,7 @@ sub process {
 					WARN("DO_WHILE_MACRO_WITH_TRAILING_SEMICOLON",
 					     "do {} while (0) macros should not be semicolon terminated\n" . "$herectx");
 				}
-			} elsif ($dstat =~ /^\+\s*#\s*define\s+$Ident.*;\s*$/) {
-				$ctx =~ s/\n*$//;
-				my $cnt = statement_rawlines($ctx);
-				my $herectx = $here . "\n";
-
-				for (my $n = 0; $n < $cnt; $n++) {
-					$herectx .= raw_line($linenr, $n) . "\n";
-				}
-
-				WARN("TRAILING_SEMICOLON",
-				     "macros should not use a trailing semicolon\n" . "$herectx");
-			}
-		}
+			}		}
 
 # make sure symbols are always wrapped with VMLINUX_SYMBOL() ...
 # all assignments may have only one of the following with an assignment:
