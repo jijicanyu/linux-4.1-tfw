@@ -4375,7 +4375,6 @@ sub process {
 				}
 			}
 
-# check for macros with flow control, but without ## concatenation
 
 # check for line continuations outside of #defines, preprocessor #, and asm
 
