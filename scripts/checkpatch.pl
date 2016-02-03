@@ -158,6 +158,7 @@ GetOptions(
 ) or help(1);
 
 help(0) if ($help);
+
 $check = 1;
 $fix = 1 if ($fix_inplace);
 $check_orig = $check;
@@ -4375,7 +4376,6 @@ sub process {
 				}
 			}
 
-
 # check for line continuations outside of #defines, preprocessor #, and asm
 
 		} else {
@@ -4426,7 +4426,7 @@ sub process {
 					WARN("DO_WHILE_MACRO_WITH_TRAILING_SEMICOLON",
 					     "do {} while (0) macros should not be semicolon terminated\n" . "$herectx");
 				}
-			}		}
+}}
 
 # make sure symbols are always wrapped with VMLINUX_SYMBOL() ...
 # all assignments may have only one of the following with an assignment:
