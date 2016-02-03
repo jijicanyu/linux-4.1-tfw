@@ -158,7 +158,7 @@ GetOptions(
 ) or help(1);
 
 help(0) if ($help);
-
+$check = 1;
 $fix = 1 if ($fix_inplace);
 $check_orig = $check;
 
