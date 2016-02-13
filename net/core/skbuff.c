@@ -255,6 +255,7 @@ __pg_skb_alloc(unsigned int size, gfp_t gfp_mask, int node)
 	o = PAGE_SHIFT - PG_CHUNK_BITS;
 
 	local_bh_disable();
+	pools = this_cpu_ptr(pg_mpool);
 
 assign_tail_chunks:
 	/* Split and store small tail chunks. */
