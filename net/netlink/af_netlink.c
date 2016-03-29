@@ -2727,8 +2727,13 @@ static int netlink_dump(struct sock *sk)
 	 * dump to use the excess space makes it difficult for a user to have a
 	 * reasonable static buffer based on the expected largest dump of a
 	 * single netdev. The outcome is MSG_TRUNC error.
+	 *
+	 * NETLINK_MMAP expects the same address offsets in kernel and user
+	 * spaces, so don't move skb data pointers for mmaped sockets.
 	 */
-	skb_reserve(skb, skb_tailroom(skb) - alloc_size);
+	if (!netlink_rx_is_mmaped(sk))
+		skb_reserve(skb, skb_tailroom(skb) - alloc_size);
+
 	netlink_skb_set_owner_r(skb, sk);
 
 	len = cb->dump(skb, cb);
