@@ -222,13 +222,14 @@ __pg_skb_alloc(unsigned int size, gfp_t gfp_mask, int node)
 {
 	char *ptr;
 	struct page *pg;
-	TfwSkbMemPool *pools = this_cpu_ptr(pg_mpool);
+	TfwSkbMemPool *pools;
 	unsigned int c, cn, o, l, po;
 
 	cn = PG_CHUNK_NUM(size);
 	po = get_order(PG_ALLOC_SZ(size));
 
 	local_bh_disable();
+	pools = this_cpu_ptr(pg_mpool);
 
 	for (o = (cn == 1) ? 0 : (cn == 2) ? 1 : (cn <= 4) ? 2 : PG_LISTS_N;
 	     o < PG_LISTS_N; ++o)
