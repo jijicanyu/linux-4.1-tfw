@@ -3481,20 +3481,5 @@ do {									\
 	TFW_SKB_CB(skb)->next = NULL;					\
 } while (0)
 
-/**
- * Whether the @skb is passed to application layer.
- *
- * Linux TCP/IP code owns all socket buffers and can call __kfree_skb() at any
- * time. Meantime, we need to pass the buffers to Tempesta code to avoid data
- * copying.
- */
-static inline bool
-ss_skb_passed(const struct sk_buff *skb)
-{
-	SsSkbCb *scb = TFW_SKB_CB(skb);
-
-	return scb->next || scb->prev;
-}
-
 #endif	/* __KERNEL__ */
 #endif	/* _LINUX_SKBUFF_H */
