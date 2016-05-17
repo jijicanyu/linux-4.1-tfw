@@ -165,6 +165,8 @@ out:
 #define PG_CHUNK_NUM(s)		(PG_ALLOC_SZ(s) >> PG_CHUNK_BITS)
 #define PG_POOL_HLIM_BASE	256
 
+#define TFW_FRAG_PAGECNT_BIAS	(0x01000000)	/* Up to 128 fragments */
+
 /**
  * @lh		- list head of chunk pool;
  * @count	- current number of chunks in @lh;
@@ -242,6 +244,7 @@ __pg_skb_alloc(unsigned int size, gfp_t gfp_mask, int node)
 		list_del(pc);
 		--pools[o].count;
 		ptr = (char *)pc;
+		pg = virt_to_page(ptr);
 		goto assign_tail_chunks;
 	}
 
@@ -253,6 +256,7 @@ __pg_skb_alloc(unsigned int size, gfp_t gfp_mask, int node)
 	ptr = (char *)page_address(pg);
 	if (po)
 		return ptr; /* don't try to split compound page */
+	atomic_add(TFW_FRAG_PAGECNT_BIAS, &pg->_count);
 	o = PAGE_SHIFT - PG_CHUNK_BITS;
 
 	local_bh_disable();
@@ -266,13 +270,16 @@ assign_tail_chunks:
 			--l;
 		chunk = (struct list_head *)(ptr + PG_CHUNK_SZ * c);
 		if (__pg_pool_shrink(&pools[l])) {
-			get_page(virt_to_page(chunk));
+			atomic_add(TFW_FRAG_PAGECNT_BIAS + 1, &pg->_count);
 			list_add(chunk, &pools[l].lh);
 			++pools[l].count;
 		}
 	}
 
 	local_bh_enable();
+
+	if (atomic_sub_and_test(TFW_FRAG_PAGECNT_BIAS, &pg->_count))
+		BUG();
 
 	return ptr;
 }
@@ -574,10 +581,15 @@ refill:
 		/* Even if we own the page, we do not use atomic_set().
 		 * This would break get_page_unless_zero() users.
 		 */
+#ifndef CONFIG_SECURITY_TEMPESTA
 		atomic_add(size - 1, &page->_count);
 
 		/* reset page count bias and offset to start of new frag */
 		nc->pagecnt_bias = size;
+#else
+		atomic_add(TFW_FRAG_PAGECNT_BIAS + size - 1, &page->_count);
+		nc->pagecnt_bias = TFW_FRAG_PAGECNT_BIAS + size;
+#endif /* CONFIG_SECURITY_TEMPESTA */
 		nc->frag.offset = size;
 	}
 
@@ -590,10 +602,15 @@ refill:
 		size = NETDEV_FRAG_PAGE_MAX_ORDER ? nc->frag.size : PAGE_SIZE;
 
 		/* OK, page count is 0, we can safely set it */
+#ifndef CONFIG_SECURITY_TEMPESTA
 		atomic_set(&page->_count, size);
 
 		/* reset page count bias and offset to start of new frag */
 		nc->pagecnt_bias = size;
+#else
+		atomic_set(&page->_count, TFW_FRAG_PAGECNT_BIAS + size);
+		nc->pagecnt_bias = TFW_FRAG_PAGECNT_BIAS + size;
+#endif /* CONFIG_SECURITY_TEMPESTA */
 		offset = size - fragsz;
 	}
 

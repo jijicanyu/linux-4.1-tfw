@@ -1856,6 +1856,10 @@ EXPORT_SYMBOL(sock_alloc_send_skb);
 /* On 32bit arches, an skb frag is limited to 2^15 */
 #define SKB_FRAG_PAGE_ORDER	get_order(32768)
 
+#ifdef CONFIG_SECURITY_TEMPESTA
+#define TFW_FRAG_PAGECNT_BIAS	(0x01000000)
+#endif /* CONFIG_SECURITY_TEMPESTA */
+
 /**
  * skb_page_frag_refill - check that a page_frag contains enough room
  * @sz: minimum size of the fragment we want to get
@@ -1869,12 +1873,20 @@ EXPORT_SYMBOL(sock_alloc_send_skb);
 bool skb_page_frag_refill(unsigned int sz, struct page_frag *pfrag, gfp_t gfp)
 {
 	if (pfrag->page) {
+#ifndef CONFIG_SECURITY_TEMPESTA
 		if (atomic_read(&pfrag->page->_count) == 1) {
+#else
+		if (atomic_read(&pfrag->page->_count) ==
+				TFW_FRAG_PAGECNT_BIAS + 1) {
+#endif /* CONFIG_SECURITY_TEMPESTA */
 			pfrag->offset = 0;
 			return true;
 		}
 		if (pfrag->offset + sz <= pfrag->size)
 			return true;
+#ifdef CONFIG_SECURITY_TEMPESTA
+		atomic_sub(TFW_FRAG_PAGECNT_BIAS, &pfrag->page->_count);
+#endif /* CONFIG_SECURITY_TEMPESTA */
 		put_page(pfrag->page);
 	}
 
@@ -1884,12 +1896,18 @@ bool skb_page_frag_refill(unsigned int sz, struct page_frag *pfrag, gfp_t gfp)
 					  __GFP_NOWARN | __GFP_NORETRY,
 					  SKB_FRAG_PAGE_ORDER);
 		if (likely(pfrag->page)) {
+#ifdef CONFIG_SECURITY_TEMPESTA
+			atomic_add(TFW_FRAG_PAGECNT_BIAS, &pfrag->page->_count);
+#endif /* CONFIG_SECURITY_TEMPESTA */
 			pfrag->size = PAGE_SIZE << SKB_FRAG_PAGE_ORDER;
 			return true;
 		}
 	}
 	pfrag->page = alloc_page(gfp);
 	if (likely(pfrag->page)) {
+#ifdef CONFIG_SECURITY_TEMPESTA
+		atomic_add(TFW_FRAG_PAGECNT_BIAS, &pfrag->page->_count);
+#endif /* CONFIG_SECURITY_TEMPESTA */
 		pfrag->size = PAGE_SIZE;
 		return true;
 	}
