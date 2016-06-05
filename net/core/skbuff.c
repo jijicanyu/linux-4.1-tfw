@@ -1420,6 +1420,7 @@ int pskb_expand_head(struct sk_buff *skb, int nhead, int ntail,
 	skb->head     = data;
 #ifdef CONFIG_SECURITY_TEMPESTA
 	skb->head_frag = 1;
+	skb->tail_lock = 0;
 #else
 	skb->head_frag = 0;
 #endif
@@ -1552,7 +1553,7 @@ int skb_pad(struct sk_buff *skb, int pad)
 		return 0;
 	}
 
-	ntail = skb->data_len + pad - (skb->end - skb->tail);
+	ntail = skb->data_len + pad - skb_tailroom_locked(skb);
 	if (likely(skb_cloned(skb) || ntail > 0)) {
 		err = pskb_expand_head(skb, 0, ntail, GFP_ATOMIC);
 		if (unlikely(err))
@@ -1787,7 +1788,7 @@ unsigned char *__pskb_pull_tail(struct sk_buff *skb, int delta)
 	 * plus 128 bytes for future expansions. If we have enough
 	 * room at tail, reallocate without expansion only if skb is cloned.
 	 */
-	int i, k, eat = (skb->tail + delta) - skb->end;
+	int i, k, eat = delta - skb_tailroom_locked(skb);
 
 	if (eat > 0 || skb_cloned(skb)) {
 		if (pskb_expand_head(skb, 0, eat > 0 ? eat + 128 : 0,

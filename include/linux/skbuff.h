@@ -622,6 +622,9 @@ struct sk_buff {
 	__u8			inner_protocol_type:1;
 	__u8			remcsum_offload:1;
 	/* 3 or 5 bit hole */
+#ifdef CONFIG_SECURITY_TEMPESTA
+	__u8			tail_lock:1;
+#endif
 
 #ifdef CONFIG_NET_SCHED
 	__u16			tc_index;	/* traffic control index */
@@ -1560,7 +1563,7 @@ static inline struct sk_buff *__skb_dequeue_tail(struct sk_buff_head *list)
 
 static inline bool skb_is_nonlinear(const struct sk_buff *skb)
 {
-	return skb->data_len;
+	return skb->tail_lock || skb->data_len;
 }
 
 static inline unsigned int skb_headlen(const struct sk_buff *skb)
@@ -1744,6 +1747,18 @@ static inline int pskb_may_pull(struct sk_buff *skb, unsigned int len)
 static inline unsigned int skb_headroom(const struct sk_buff *skb)
 {
 	return skb->data - skb->head;
+}
+
+/**
+ *	skb_tailroom_locked - bytes at buffer end
+ *	@skb: buffer to check
+ *
+ *	Return the number of bytes of free space at the tail of an sk_buff with
+ *	respect to tail locking only.
+ */
+static inline int skb_tailroom_locked(const struct sk_buff *skb)
+{
+	return skb->tail_lock ? 0 : skb->end - skb->tail;
 }
 
 /**
