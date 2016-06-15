@@ -203,7 +203,7 @@ __pg_pool_shrink(TfwSkbMemPool *pool)
 		while (pool->count > pool->max) {
 			struct list_head *pc = pool->lh.next;
 			list_del(pc);
-			put_page(virt_to_page(pc));
+			put_page(virt_to_head_page(pc));
 			--pool->count;
 		}
 		return false;
@@ -242,11 +242,14 @@ __pg_skb_alloc(unsigned int size, gfp_t gfp_mask, int node)
 		list_del(pc);
 		--pools[o].count;
 		ptr = (char *)pc;
+		pg = virt_to_head_page(ptr);
 		goto assign_tail_chunks;
 	}
 
 	local_bh_enable();
 
+	/* Add compound page metadata, if page order is > 0 */
+	gfp_mask |= __GFP_NOWARN | (po ? __GFP_COMP : 0);
 	pg = alloc_pages_node(node, gfp_mask, po);
 	if (!pg)
 		return NULL;
@@ -266,7 +269,7 @@ assign_tail_chunks:
 			--l;
 		chunk = (struct list_head *)(ptr + PG_CHUNK_SZ * c);
 		if (__pg_pool_shrink(&pools[l])) {
-			get_page(virt_to_page(chunk));
+			get_page(pg);
 			list_add(chunk, &pools[l].lh);
 			++pools[l].count;
 		}
