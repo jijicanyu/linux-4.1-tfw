@@ -223,12 +223,14 @@ __pg_skb_alloc(unsigned int size, gfp_t gfp_mask, int node)
 	char *ptr;
 	struct page *pg;
 	TfwSkbMemPool *pools;
+	bool dolock = !(in_irq() || irqs_disabled());
 	unsigned int c, cn, o, l, po;
 
 	cn = PG_CHUNK_NUM(size);
 	po = get_order(PG_ALLOC_SZ(size));
 
-	local_bh_disable();
+#define if_true(cond, stmt) do { if (cond) stmt; } while (0)
+	if_true(dolock, local_bh_disable());
 	pools = this_cpu_ptr(pg_mpool);
 
 	for (o = (cn == 1) ? 0 : (cn == 2) ? 1 : (cn <= 4) ? 2 : PG_LISTS_N;
@@ -246,7 +248,7 @@ __pg_skb_alloc(unsigned int size, gfp_t gfp_mask, int node)
 		goto assign_tail_chunks;
 	}
 
-	local_bh_enable();
+	if_true(dolock, local_bh_enable());
 
 	/* Add compound page metadata, if page order is > 0 */
 	gfp_mask |= __GFP_NOWARN | (po ? __GFP_COMP : 0);
@@ -258,7 +260,7 @@ __pg_skb_alloc(unsigned int size, gfp_t gfp_mask, int node)
 		return ptr; /* don't try to split compound page */
 	o = PAGE_SHIFT - PG_CHUNK_BITS;
 
-	local_bh_disable();
+	if_true(dolock, local_bh_disable());
 	pools = this_cpu_ptr(pg_mpool);
 
 assign_tail_chunks:
@@ -275,7 +277,8 @@ assign_tail_chunks:
 		}
 	}
 
-	local_bh_enable();
+	if_true(dolock, local_bh_enable());
+#undef if_true
 
 	return ptr;
 }
